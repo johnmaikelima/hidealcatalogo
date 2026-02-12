@@ -103,14 +103,22 @@ function ProductDetail() {
               {product.specs && Object.keys(product.specs).length > 0 && (
                 <div className="product-detail-specs">
                   <h3>Especificações</h3>
-                  <ul className="specs-list">
-                    {Object.entries(product.specs).map(([key, value]) => (
-                      <li key={key}>
-                        <strong>{key}:</strong>
-                        <span>{value}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <table className="specs-table">
+                    <thead>
+                      <tr>
+                        <th>Característica</th>
+                        <th>Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(product.specs).map(([key, value]) => (
+                        <tr key={key}>
+                          <td className="spec-key">{key}</td>
+                          <td className="spec-value">{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
 

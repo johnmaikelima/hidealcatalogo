@@ -23,12 +23,33 @@ function Admin() {
     image: '',
     specs: {}
   });
+  const [specsArray, setSpecsArray] = useState([]);
 
   const [categoryForm, setCategoryForm] = useState({
     name: '',
     icon: '',
     description: ''
   });
+  const [showIconPicker, setShowIconPicker] = useState(false);
+
+  const iconOptions = [
+    { name: 'Carrinho', icon: 'fas fa-dolly' },
+    { name: 'Palete/Empilhadeira', icon: 'fas fa-pallet' },
+    { name: 'Engrenagem', icon: 'fas fa-cog' },
+    { name: 'Ferramentas', icon: 'fas fa-tools' },
+    { name: 'Caixa', icon: 'fas fa-box' },
+    { name: 'Peso', icon: 'fas fa-weight' },
+    { name: 'Cubo', icon: 'fas fa-cube' },
+    { name: 'Chave Inglesa', icon: 'fas fa-wrench' },
+    { name: 'Martelo', icon: 'fas fa-hammer' },
+    { name: 'Engrenagens', icon: 'fas fa-gears' },
+    { name: 'Caminhão', icon: 'fas fa-truck' },
+    { name: 'Indústria', icon: 'fas fa-industry' },
+    { name: 'Cilindro', icon: 'fas fa-drum' },
+    { name: 'Parafuso', icon: 'fas fa-screw' },
+    { name: 'Corrente', icon: 'fas fa-link' },
+    { name: 'Tubo', icon: 'fas fa-pipe' }
+  ];
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -78,10 +99,13 @@ function Admin() {
       image: '',
       specs: {}
     });
+    setSpecsArray([]);
     setShowProductModal(true);
   };
 
   const handleEditProduct = (product) => {
+    console.log('📝 Editando produto:', product);
+    console.log('📋 Specs do produto:', product.specs);
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -91,16 +115,28 @@ function Admin() {
       image: product.image || '',
       specs: product.specs || {}
     });
+    // Converter specs de objeto para array
+    const specsArr = Object.entries(product.specs || {}).map(([name, value]) => ({ name, value }));
+    setSpecsArray(specsArr);
     setShowProductModal(true);
   };
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
+      // Converter specsArray de volta para objeto
+      const specsObj = {};
+      specsArray.forEach(spec => {
+        if (spec.name && spec.value) {
+          specsObj[spec.name] = spec.value;
+        }
+      });
+
       const data = {
         ...formData,
         category_id: parseInt(formData.category_id),
-        price: formData.price ? parseFloat(formData.price) : null
+        price: formData.price ? parseFloat(formData.price) : null,
+        specs: specsObj
       };
 
       if (editingProduct) {
@@ -194,6 +230,20 @@ function Admin() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleAddSpec = () => {
+    setSpecsArray([...specsArray, { name: '', value: '' }]);
+  };
+
+  const handleRemoveSpec = (index) => {
+    setSpecsArray(specsArray.filter((_, i) => i !== index));
+  };
+
+  const handleSpecChange = (index, field, value) => {
+    const newSpecs = [...specsArray];
+    newSpecs[index] = { ...newSpecs[index], [field]: value };
+    setSpecsArray(newSpecs);
   };
 
   if (!isAuthenticated) {
@@ -442,13 +492,64 @@ function Admin() {
 
               <div className="form-group">
                 <label htmlFor="productImage">Imagem do Produto:</label>
-                <input
-                  type="file"
-                  id="productImage"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-                <small>Você pode fazer upload de um arquivo ou colar uma URL</small>
+                <div className="image-upload-wrapper">
+                  <input
+                    type="file"
+                    id="productImage"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  <small>Selecione uma imagem do seu computador</small>
+                </div>
+                {formData.image && (
+                  <div className="image-preview">
+                    <img src={formData.image} alt="Preview" />
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Características do Produto:</label>
+                <div className="specs-list">
+                  {specsArray.length === 0 ? (
+                    <p className="specs-empty">Nenhuma característica adicionada ainda</p>
+                  ) : (
+                    specsArray.map((spec, index) => (
+                      <div key={index} className="spec-item">
+                        <input
+                          type="text"
+                          placeholder="Ex: Peso suportado"
+                          value={spec.name}
+                          onChange={(e) => handleSpecChange(index, 'name', e.target.value)}
+                          className="spec-key"
+                        />
+                        <span className="spec-separator">|</span>
+                        <input
+                          type="text"
+                          placeholder="Ex: 250kg"
+                          value={spec.value}
+                          onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
+                          className="spec-value"
+                        />
+                        <button
+                          type="button"
+                          className="btn-remove-spec"
+                          onClick={() => handleRemoveSpec(index)}
+                          title="Remover característica"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-add-spec"
+                  onClick={handleAddSpec}
+                >
+                  <i className="fas fa-plus"></i> Adicionar Característica
+                </button>
               </div>
 
               <div className="modal-actions">
@@ -496,14 +597,28 @@ function Admin() {
 
               <div className="form-group">
                 <label htmlFor="categoryIcon">Ícone (Font Awesome):</label>
-                <input
-                  type="text"
-                  id="categoryIcon"
-                  value={categoryForm.icon}
-                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
-                  placeholder="Ex: fas fa-dolly"
-                  required
-                />
+                <div className="icon-input-wrapper">
+                  <input
+                    type="text"
+                    id="categoryIcon"
+                    value={categoryForm.icon}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                    placeholder="Ex: fas fa-dolly"
+                    required
+                  />
+                  {categoryForm.icon && (
+                    <div className="icon-preview">
+                      <i className={categoryForm.icon}></i>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-icon-picker"
+                  onClick={() => setShowIconPicker(true)}
+                >
+                  <i className="fas fa-icons"></i> Selecionar Ícone
+                </button>
               </div>
 
               <div className="form-group">
@@ -530,6 +645,41 @@ function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Icon Picker Modal */}
+      {showIconPicker && (
+        <div className="modal-overlay">
+          <div className="modal-content icon-picker-modal">
+            <div className="modal-header">
+              <h2>Selecionar Ícone</h2>
+              <button
+                className="modal-close"
+                onClick={() => setShowIconPicker(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="icon-picker-grid">
+              {iconOptions.map((option) => (
+                <button
+                  key={option.icon}
+                  type="button"
+                  className={`icon-picker-item ${categoryForm.icon === option.icon ? 'active' : ''}`}
+                  onClick={() => {
+                    setCategoryForm({ ...categoryForm, icon: option.icon });
+                    setShowIconPicker(false);
+                  }}
+                  title={option.name}
+                >
+                  <i className={option.icon}></i>
+                  <span>{option.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

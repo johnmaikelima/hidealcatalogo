@@ -19,8 +19,17 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir arquivos estáticos do React
 const buildPath = path.join(__dirname, '../client/build');
+console.log('🔍 Procurando build em:', buildPath);
+console.log('📁 Build existe?', fs.existsSync(buildPath));
+
 if (fs.existsSync(buildPath)) {
-    app.use(express.static(buildPath));
+    app.use(express.static(buildPath, { 
+        maxAge: '1d',
+        etag: false 
+    }));
+    console.log('✅ Arquivos estáticos configurados');
+} else {
+    console.warn('⚠️ Pasta build não encontrada em:', buildPath);
 }
 
 // Inicializar banco de dados SQLite
@@ -205,6 +214,13 @@ app.get('/api/products', (req, res) => {
             res.status(500).json({ error: err.message });
         } else {
             const products = rows || [];
+            let productsProcessed = 0;
+            
+            if (products.length === 0) {
+                res.json(products);
+                return;
+            }
+            
             products.forEach(product => {
                 db.all(
                     'SELECT spec_key, spec_value FROM specifications WHERE product_id = ?',
@@ -216,10 +232,13 @@ app.get('/api/products', (req, res) => {
                                 product.specs[spec.spec_key] = spec.spec_value;
                             });
                         }
+                        productsProcessed++;
+                        if (productsProcessed === products.length) {
+                            res.json(products);
+                        }
                     }
                 );
             });
-            res.json(products);
         }
     });
 });
@@ -283,30 +302,60 @@ app.post('/api/products', (req, res) => {
 app.put('/api/products/:id', (req, res) => {
     const { name, category_id, price, description, image, specs } = req.body;
     
-    db.run(
-        'UPDATE products SET name = ?, category_id = ?, price = ?, description = ?, image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [name, category_id, price || null, description, image || null, req.params.id],
-        function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-            } else if (this.changes === 0) {
-                res.status(404).json({ error: 'Produto não encontrado' });
-            } else {
-                db.run('DELETE FROM specifications WHERE product_id = ?', [req.params.id]);
-                
-                if (specs && Object.keys(specs).length > 0) {
-                    Object.entries(specs).forEach(([key, value]) => {
-                        db.run(
-                            'INSERT INTO specifications (product_id, spec_key, spec_value) VALUES (?, ?, ?)',
-                            [req.params.id, key, value]
-                        );
+    db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+        
+        db.run(
+            'UPDATE products SET name = ?, category_id = ?, price = ?, description = ?, image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [name, category_id, price || null, description, image || null, req.params.id],
+            function(err) {
+                if (err) {
+                    db.run('ROLLBACK');
+                    res.status(500).json({ error: err.message });
+                } else if (this.changes === 0) {
+                    db.run('ROLLBACK');
+                    res.status(404).json({ error: 'Produto não encontrado' });
+                } else {
+                    db.run('DELETE FROM specifications WHERE product_id = ?', [req.params.id], (err) => {
+                        if (err) {
+                            db.run('ROLLBACK');
+                            res.status(500).json({ error: err.message });
+                            return;
+                        }
+                        
+                        if (specs && Object.keys(specs).length > 0) {
+                            let specsInserted = 0;
+                            const specsArray = Object.entries(specs);
+                            
+                            specsArray.forEach(([key, value], index) => {
+                                db.run(
+                                    'INSERT INTO specifications (product_id, spec_key, spec_value) VALUES (?, ?, ?)',
+                                    [req.params.id, key, value],
+                                    (err) => {
+                                        if (err) {
+                                            db.run('ROLLBACK');
+                                            res.status(500).json({ error: err.message });
+                                            return;
+                                        }
+                                        specsInserted++;
+                                        if (specsInserted === specsArray.length) {
+                                            db.run('COMMIT', () => {
+                                                res.json({ id: req.params.id, name, category_id, price, description, image, specs });
+                                            });
+                                        }
+                                    }
+                                );
+                            });
+                        } else {
+                            db.run('COMMIT', () => {
+                                res.json({ id: req.params.id, name, category_id, price, description, image, specs });
+                            });
+                        }
                     });
                 }
-                
-                res.json({ id: req.params.id, name, category_id, price, description, image, specs });
             }
-        }
-    );
+        );
+    });
 });
 
 app.delete('/api/products/:id', (req, res) => {
@@ -322,15 +371,21 @@ app.delete('/api/products/:id', (req, res) => {
 });
 
 // ===================================
-// ROTA PADRÃO (React)
+// ROTA PADRÃO (React SPA)
 // ===================================
 
 app.get('*', (req, res) => {
     const indexPath = path.join(buildPath, 'index.html');
     if (fs.existsSync(indexPath)) {
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.sendFile(indexPath);
     } else {
-        res.json({ message: 'Servidor rodando. Execute "npm run build" para compilar o React.' });
+        console.error('❌ index.html não encontrado em:', indexPath);
+        res.status(500).json({ 
+            error: 'Build não encontrado',
+            message: 'Execute "npm run build" para compilar o React.',
+            buildPath: buildPath
+        });
     }
 });
 

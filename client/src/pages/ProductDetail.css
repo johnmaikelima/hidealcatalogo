@@ -138,26 +138,40 @@
   margin-bottom: 1.5rem;
 }
 
-.specs-list {
-  list-style: none;
+.specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
 }
 
-.specs-list li {
-  padding: 0.8rem 0;
-  border-bottom: 1px solid #E0E0E0;
-  display: flex;
-  justify-content: space-between;
+.specs-table thead {
+  background-color: rgba(42, 119, 243, 0.1);
 }
 
-.specs-list li:last-child {
-  border-bottom: none;
-}
-
-.specs-list strong {
+.specs-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
   color: var(--dark-blue);
+  border-bottom: 2px solid var(--primary-color);
 }
 
-.specs-list span {
+.specs-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.specs-table tbody tr:hover {
+  background-color: rgba(42, 119, 243, 0.05);
+}
+
+.specs-table .spec-key {
+  font-weight: 600;
+  color: var(--dark-blue);
+  width: 40%;
+}
+
+.specs-table .spec-value {
   color: var(--text-light);
 }
 

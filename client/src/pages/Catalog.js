@@ -27,11 +27,14 @@ function Catalog() {
         axios.get('/api/products'),
         axios.get('/api/categories')
       ]);
+      console.log('✅ Produtos carregados:', productsRes.data);
+      console.log('✅ Categorias carregadas:', categoriesRes.data);
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setLoading(false);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados:', error);
+      console.error('URL tentada:', error.config?.url);
       setLoading(false);
     }
   };
