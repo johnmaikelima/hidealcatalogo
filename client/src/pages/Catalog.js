@@ -18,6 +18,7 @@ function Catalog() {
 
   useEffect(() => {
     filterProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, selectedCategory, searchTerm, priceRange]);
 
   const loadData = async () => {

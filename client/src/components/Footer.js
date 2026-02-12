@@ -30,10 +30,10 @@ function Footer() {
           <div className="footer-section">
             <h4>Redes Sociais</h4>
             <div className="social-links">
-              <a href="#" aria-label="Facebook"><i className="fab fa-facebook"></i></a>
-              <a href="#" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
-              <a href="#" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
-              <a href="#" aria-label="WhatsApp"><i className="fab fa-whatsapp"></i></a>
+              <a href="javascript:void(0)" aria-label="Facebook"><i className="fab fa-facebook"></i></a>
+              <a href="javascript:void(0)" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+              <a href="javascript:void(0)" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
+              <a href="javascript:void(0)" aria-label="WhatsApp"><i className="fab fa-whatsapp"></i></a>
             </div>
           </div>
         </div>
